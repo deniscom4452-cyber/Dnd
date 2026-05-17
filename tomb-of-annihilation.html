@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Гробница Аннигиляции</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bone:    #d4c5a9;
+    --rot:     #7a3f1e;
+    --jungle:  #1a3a2a;
+    --deep:    #0a1a12;
+    --moss:    #2e5e3e;
+    --blood:   #8b1a1a;
+    --mist:    rgba(180,210,190,0.06);
+    --gold:    #c9a84c;
+    --shadow:  #050e08;
+  }
+
+  html, body {
+    width: 100%; min-height: 100vh;
+    background: var(--shadow);
+    color: var(--bone);
+    font-family: 'EB Garamond', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* ── CANVAS BACKGROUND ── */
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  .noise {
+    position: fixed; inset: 0; z-index: 1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.035;
+  }
+
+  /* ── VINES ── */
+  .vines-left, .vines-right {
+    position: fixed; top: 0;
+    width: 180px; height: 100vh;
+    z-index: 2; pointer-events: none;
+    background-repeat: repeat-y;
+    background-size: 180px auto;
+  }
+  .vines-left  { left: 0;  background-image: url("data:image/svg+xml,%3Csvg width='180' height='400' viewBox='0 0 180 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0 C40 60 10 100 30 160 C50 220 15 270 35 340 C45 370 25 390 20 400' stroke='%232e5e3e' stroke-width='3' fill='none' opacity='0.6'/%3E%3Cpath d='M55 0 C30 80 60 120 40 200 C20 270 50 310 30 400' stroke='%231a3a2a' stroke-width='2' fill='none' opacity='0.5'/%3E%3Cpath d='M80 0 C90 50 70 90 85 150 C100 210 75 260 90 330 C95 360 80 390 85 400' stroke='%232e5e3e' stroke-width='2.5' fill='none' opacity='0.4'/%3E%3Cellipse cx='30' cy='90' rx='14' ry='9' fill='%231a3a2a' opacity='0.5' transform='rotate(-20 30 90)'/%3E%3Cellipse cx='55' cy='140' rx='12' ry='8' fill='%232e5e3e' opacity='0.4' transform='rotate(15 55 140)'/%3E%3Cellipse cx='40' cy='230' rx='16' ry='10' fill='%231a3a2a' opacity='0.45' transform='rotate(-10 40 230)'/%3E%3Cellipse cx='60' cy='300' rx='13' ry='8' fill='%232e5e3e' opacity='0.4' transform='rotate(25 60 300)'/%3E%3C/svg%3E"); }
+  .vines-right { right: 0; transform: scaleX(-1); background-image: url("data:image/svg+xml,%3Csvg width='180' height='400' viewBox='0 0 180 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0 C40 60 10 100 30 160 C50 220 15 270 35 340 C45 370 25 390 20 400' stroke='%232e5e3e' stroke-width='3' fill='none' opacity='0.6'/%3E%3Cpath d='M55 0 C30 80 60 120 40 200 C20 270 50 310 30 400' stroke='%231a3a2a' stroke-width='2' fill='none' opacity='0.5'/%3E%3Cpath d='M80 0 C90 50 70 90 85 150 C100 210 75 260 90 330 C95 360 80 390 85 400' stroke='%232e5e3e' stroke-width='2.5' fill='none' opacity='0.4'/%3E%3Cellipse cx='30' cy='90' rx='14' ry='9' fill='%231a3a2a' opacity='0.5' transform='rotate(-20 30 90)'/%3E%3Cellipse cx='55' cy='140' rx='12' ry='8' fill='%232e5e3e' opacity='0.4' transform='rotate(15 55 140)'/%3E%3Cellipse cx='40' cy='230' rx='16' ry='10' fill='%231a3a2a' opacity='0.45' transform='rotate(-10 40 230)'/%3E%3Cellipse cx='60' cy='300' rx='13' ry='8' fill='%232e5e3e' opacity='0.4' transform='rotate(25 60 300)'/%3E%3C/svg%3E"); }
+
+  /* ── LAYOUT ── */
+  .page {
+    position: relative; z-index: 10;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 40px 120px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ── TOP SKULL ── */
+  .skull-wrap {
+    margin-top: 64px;
+    position: relative;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+  .skull-svg { width: 120px; height: 120px; filter: drop-shadow(0 0 18px rgba(139,26,26,0.55)); }
+
+  /* drip from skull */
+  .drip-container {
+    position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 14px;
+  }
+  .drip {
+    width: 4px; background: var(--blood);
+    border-radius: 0 0 4px 4px;
+    animation: drip-fall 3s ease-in infinite;
+    transform-origin: top center;
+  }
+  .drip:nth-child(1){ height: 18px; animation-delay: 0s;   animation-duration: 2.8s; }
+  .drip:nth-child(2){ height: 26px; animation-delay: 0.7s; animation-duration: 3.2s; }
+  .drip:nth-child(3){ height: 14px; animation-delay: 1.4s; animation-duration: 2.5s; }
+  @keyframes drip-fall {
+    0%   { opacity: 0; transform: scaleY(0); }
+    20%  { opacity: 1; transform: scaleY(1); }
+    70%  { opacity: 1; }
+    100% { opacity: 0; transform: scaleY(1) translateY(12px); }
+  }
+
+  /* ── CAMPAIGN NUMBER ── */
+  .campaign-tag {
+    margin-top: 52px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.45em;
+    color: var(--gold);
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  /* ── TITLE ── */
+  .title-block { text-align: center; margin-top: 18px; }
+  .title-sub {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 0.35em;
+    color: var(--moss);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 10px;
+    animation: fadein 2s ease both;
+  }
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(34px, 6vw, 62px);
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--bone);
+    text-shadow:
+      0 0 40px rgba(139,26,26,0.6),
+      0 0 80px rgba(139,26,26,0.25),
+      2px 2px 0 #1a0a0a;
+    letter-spacing: 0.03em;
+    animation: fadein 2.2s ease both 0.2s;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--blood);
+    display: block;
+    font-size: 0.58em;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 4px;
+    text-shadow: 0 0 30px rgba(139,26,26,0.9);
+  }
+
+  /* ── RUNE DIVIDER ── */
+  .divider {
+    width: 100%; margin: 48px 0;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .div-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--moss) 40%, var(--gold) 50%, var(--moss) 60%, transparent);
+    opacity: 0.5;
+  }
+  .div-rune {
+    font-size: 22px; color: var(--gold); opacity: 0.7;
+    text-shadow: 0 0 12px rgba(201,168,76,0.5);
+    animation: pulse-rune 4s ease-in-out infinite;
+  }
+  @keyframes pulse-rune {
+    0%,100% { opacity: 0.5; text-shadow: 0 0 8px rgba(201,168,76,0.3); }
+    50%      { opacity: 0.9; text-shadow: 0 0 20px rgba(201,168,76,0.7); }
+  }
+
+  /* ── HOOK LINE ── */
+  .hook {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    letter-spacing: 0.2em;
+    color: var(--blood);
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(139,26,26,0.6);
+    animation: fadein 2s ease both 0.4s;
+    border: 1px solid rgba(139,26,26,0.25);
+    padding: 14px 32px;
+    background: rgba(139,26,26,0.07);
+    width: 100%;
+  }
+
+  /* ── BODY PARAGRAPHS ── */
+  .lore {
+    margin-top: 40px;
+    display: flex; flex-direction: column; gap: 28px;
+    width: 100%;
+  }
+  .lore-p {
+    font-size: 19px;
+    line-height: 1.85;
+    color: #c8b99a;
+    position: relative;
+    padding-left: 28px;
+    animation: slide-in 1s ease both;
+  }
+  .lore-p::before {
+    content: '';
+    position: absolute; left: 0; top: 10px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--moss);
+    box-shadow: 0 0 10px var(--moss);
+  }
+  .lore-p:nth-child(1){ animation-delay: 0.5s; }
+  .lore-p:nth-child(2){ animation-delay: 0.75s; }
+  .lore-p:nth-child(3){ animation-delay: 1s; }
+  .lore-p:nth-child(4){ animation-delay: 1.25s; }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── FINAL LINE ── */
+  .final-line {
+    margin-top: 52px;
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(15px, 2.5vw, 22px);
+    color: var(--bone);
+    text-align: center;
+    letter-spacing: 0.08em;
+    line-height: 1.6;
+    padding: 32px 40px;
+    border: 1px solid rgba(201,168,76,0.2);
+    background: linear-gradient(135deg, rgba(26,58,42,0.35), rgba(10,26,18,0.6));
+    position: relative;
+    animation: fadein 2s ease both 1.5s;
+  }
+  .final-line::before, .final-line::after {
+    content: '☽ ✦ ☾';
+    display: block;
+    font-family: serif;
+    font-size: 13px;
+    color: var(--gold);
+    opacity: 0.5;
+    letter-spacing: 0.3em;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .final-line::after { margin-bottom: 0; margin-top: 10px; }
+
+  /* ── BOTTOM GLYPH ROW ── */
+  .glyphs {
+    margin-top: 60px;
+    display: flex; gap: 28px; align-items: center;
+    opacity: 0.35;
+    animation: fadein 3s ease both 2s;
+  }
+  .glyph {
+    font-size: 24px;
+    color: var(--gold);
+    animation: glyph-pulse 5s ease-in-out infinite;
+  }
+  .glyph:nth-child(2){ animation-delay: 1s; }
+  .glyph:nth-child(3){ animation-delay: 2s; }
+  @keyframes glyph-pulse {
+    0%,100%{ opacity: 0.4; } 50%{ opacity: 0.9; }
+  }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── MIST PARTICLES ── */
+  .mist-layer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 220px; z-index: 3; pointer-events: none;
+    background: linear-gradient(to top, rgba(10,26,18,0.9) 0%, transparent 100%);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .page { padding: 0 20px 80px; }
+    .vines-left, .vines-right { width: 80px; }
+    .hook { padding: 12px 16px; font-size: 12px; }
+    .final-line { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="noise"></div>
+<div class="vines-left"></div>
+<div class="vines-right"></div>
+<div class="mist-layer"></div>
+
+<div class="page">
+
+  <!-- Skull -->
+  <div class="skull-wrap">
+    <svg class="skull-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="sg" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#c8b99a"/>
+          <stop offset="100%" stop-color="#5a3e28"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- cranium -->
+      <ellipse cx="50" cy="41" rx="32" ry="30" fill="url(#sg)" filter="url(#glow)"/>
+      <!-- jaw -->
+      <rect x="30" y="63" width="40" height="18" rx="5" fill="#9a836a"/>
+      <!-- cheekbones -->
+      <ellipse cx="25" cy="52" rx="7" ry="5" fill="#8b7355" opacity="0.6"/>
+      <ellipse cx="75" cy="52" rx="7" ry="5" fill="#8b7355" opacity="0.6"/>
+      <!-- eye sockets -->
+      <ellipse cx="37" cy="46" rx="10" ry="11" fill="#0a1a12"/>
+      <ellipse cx="63" cy="46" rx="10" ry="11" fill="#0a1a12"/>
+      <!-- eye glow -->
+      <ellipse cx="37" cy="47" rx="5" ry="6" fill="rgba(139,26,26,0.45)"/>
+      <ellipse cx="63" cy="47" rx="5" ry="6" fill="rgba(139,26,26,0.45)"/>
+      <!-- nose -->
+      <path d="M46 60 L50 54 L54 60 Z" fill="#0a1a12"/>
+      <!-- teeth -->
+      <rect x="32" y="66" width="6" height="10" rx="2" fill="#c8b99a"/>
+      <rect x="41" y="65" width="6" height="11" rx="2" fill="#c8b99a"/>
+      <rect x="50" y="65" width="6" height="11" rx="2" fill="#c8b99a"/>
+      <rect x="59" y="65" width="6" height="10" rx="2" fill="#c8b99a"/>
+      <!-- cracks -->
+      <path d="M50 15 L48 30 L52 38" stroke="#5a3e28" stroke-width="1" fill="none" opacity="0.5"/>
+      <path d="M68 30 L62 42" stroke="#5a3e28" stroke-width="0.8" fill="none" opacity="0.4"/>
+    </svg>
+    <div class="drip-container">
+      <div class="drip"></div>
+      <div class="drip"></div>
+      <div class="drip"></div>
+    </div>
+  </div>
+
+  <!-- Campaign tag -->
+  <div class="campaign-tag">💀 Кампания II</div>
+
+  <!-- Title -->
+  <div class="title-block">
+    <span class="title-sub">D&amp;D · Forgotten Realms</span>
+    <h1>Гробница<em>Аннигиляции</em></h1>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider">
+    <div class="div-line"></div>
+    <div class="div-rune">⌖</div>
+    <div class="div-line"></div>
+  </div>
+
+  <!-- Hook -->
+  <div class="hook">Что-то пожирает смерть</div>
+
+  <!-- Lore paragraphs -->
+  <div class="lore">
+    <p class="lore-p">
+      Заклинания воскрешения перестают работать на всём Фаэруне. Те, кого уже вернули с той стороны — начинают угасать, медленно и неотвратимо. И никто не знает почему.
+    </p>
+    <p class="lore-p">
+      Ответ спрятан на краю карты, в <strong style="color:var(--gold)">Чульте</strong> — затерянном полуострове, где джунгли живут своей жизнью, птеродактили — обычная угроза, а под слоями лиан и костей скрывается нечто древнее.
+    </p>
+    <p class="lore-p">
+      Вас туда тянет не героизм.
+    </p>
+    <p class="lore-p" style="color:var(--bone); font-style:italic;">
+      Вас туда тянет необходимость.
+    </p>
+  </div>
+
+  <!-- Final quote block -->
+  <div class="final-line">
+    Смерть — это не конец.<br>
+    <span style="font-size:0.75em; opacity:0.7; font-family:'EB Garamond',serif; font-style:italic;">Пока Гробница стоит — она даже не начало.</span>
+  </div>
+
+  <!-- Glyphs -->
+  <div class="glyphs">
+    <div class="glyph">𓂀</div>
+    <div class="glyph">𓆣</div>
+    <div class="glyph">𓂀</div>
+  </div>
+
+</div>
+
+<script>
+  /* ── PARTICLE/MIST CANVAS ── */
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* Deep jungle background gradient */
+  function drawBg() {
+    const g = ctx.createRadialGradient(
+      canvas.width * 0.5, canvas.height * 0.3, 0,
+      canvas.width * 0.5, canvas.height * 0.5, canvas.height * 0.9
+    );
+    g.addColorStop(0,   '#0e2018');
+    g.addColorStop(0.4, '#080f0a');
+    g.addColorStop(1,   '#020704');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  /* Floating spores */
+  const SPORE_COUNT = 55;
+  const spores = Array.from({length: SPORE_COUNT}, () => ({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: Math.random() * 1.6 + 0.3,
+    vx: (Math.random() - 0.5) * 0.25,
+    vy: -(Math.random() * 0.4 + 0.05),
+    alpha: Math.random() * 0.4 + 0.05,
+    hue: Math.random() < 0.3 ? 'rgba(139,26,26,' : 'rgba(46,94,62,',
+  }));
+
+  function animateSpores(t) {
+    drawBg();
+
+    /* subtle vignette */
+    const vig = ctx.createRadialGradient(
+      canvas.width/2, canvas.height/2, canvas.height * 0.15,
+      canvas.width/2, canvas.height/2, canvas.height * 0.85
+    );
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.75)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    spores.forEach(s => {
+      s.x += s.vx + Math.sin(t * 0.0005 + s.y) * 0.15;
+      s.y += s.vy;
+      if (s.y < -10) { s.y = canvas.height + 10; s.x = Math.random() * canvas.width; }
+      const pulse = 0.5 + 0.5 * Math.sin(t * 0.001 + s.x);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.hue + (s.alpha * pulse) + ')';
+      ctx.fill();
+    });
+
+    requestAnimationFrame(animateSpores);
+  }
+  requestAnimationFrame(animateSpores);
+</script>
+</body>
+</html>

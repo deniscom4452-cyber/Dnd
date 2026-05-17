@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Клад Королевы Драконов</title>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ash:      #1a1208;
+    --ember:    #c44b1a;
+    --flame:    #e8721c;
+    --gold:     #d4930a;
+    --bright-gold: #f0b429;
+    --smoke:    #2e2418;
+    --bone-ash: #c4b49a;
+    --deep:     #080500;
+    --scale:    #1e1408;
+  }
+
+  html, body {
+    width: 100%; min-height: 100vh;
+    background: var(--deep);
+    color: var(--bone-ash);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── CANVAS ── */
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── NOISE ── */
+  .noise {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.04;
+  }
+
+  /* ── SCALE PATTERN SIDES ── */
+  .scales-left, .scales-right {
+    position: fixed; top: 0;
+    width: 160px; height: 100vh;
+    z-index: 2; pointer-events: none;
+    overflow: hidden;
+  }
+  .scales-left  { left: 0; }
+  .scales-right { right: 0; transform: scaleX(-1); }
+
+  .scales-svg {
+    width: 100%; height: 100%;
+    opacity: 0.18;
+  }
+
+  /* ── LAYOUT ── */
+  .page {
+    position: relative; z-index: 10;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 50px 130px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ── DRAGON EYE ── */
+  .eye-wrap {
+    margin-top: 70px;
+    position: relative;
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%,100% { transform: scale(1);    filter: drop-shadow(0 0 20px rgba(196,75,26,0.5)); }
+    50%      { transform: scale(1.04); filter: drop-shadow(0 0 45px rgba(212,147,10,0.7)); }
+  }
+  .eye-svg { width: 200px; height: 110px; }
+
+  /* ── CAMPAIGN TAG ── */
+  .campaign-tag {
+    margin-top: 44px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.5em;
+    color: var(--ember);
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  /* ── TITLE ── */
+  .title-block { text-align: center; margin-top: 16px; }
+  .title-sub {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.38em;
+    color: rgba(212,147,10,0.6);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 12px;
+    animation: fadein 2s ease both;
+  }
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(30px, 5.5vw, 58px);
+    font-weight: 900;
+    line-height: 1.15;
+    color: var(--bright-gold);
+    text-shadow:
+      0 0 30px rgba(196,75,26,0.8),
+      0 0 70px rgba(212,147,10,0.3),
+      3px 3px 0 #1a0800;
+    letter-spacing: 0.04em;
+    animation: fadein 2.2s ease both 0.2s;
+  }
+  h1 em {
+    font-style: italic;
+    color: #ff9040;
+    display: block;
+    font-size: 0.52em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-top: 6px;
+    text-shadow: 0 0 25px rgba(255,144,64,0.9), 0 0 60px rgba(196,75,26,0.5);
+  }
+
+  /* ── FLAME DIVIDER ── */
+  .divider {
+    width: 100%; margin: 46px 0;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .div-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--ember) 40%, var(--bright-gold) 50%, var(--ember) 60%, transparent);
+    opacity: 0.45;
+  }
+  .div-icon {
+    font-size: 20px; color: var(--bright-gold); opacity: 0.75;
+    text-shadow: 0 0 14px rgba(240,180,41,0.6);
+    animation: flicker 2.5s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%,100% { opacity: 0.6; transform: scale(1); }
+    25%      { opacity: 0.9; transform: scale(1.08) rotate(-2deg); }
+    75%      { opacity: 0.7; transform: scale(0.97) rotate(1deg); }
+  }
+
+  /* ── HOOK ── */
+  .hook {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    color: var(--flame);
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 0 22px rgba(196,75,26,0.7);
+    padding: 16px 36px;
+    border: 1px solid rgba(196,75,26,0.3);
+    background: rgba(196,75,26,0.07);
+    width: 100%;
+    animation: fadein 2s ease both 0.4s;
+    position: relative;
+  }
+  .hook::before, .hook::after {
+    content: '🔥';
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    font-size: 16px;
+  }
+  .hook::before { left: 14px; }
+  .hook::after  { right: 14px; }
+
+  /* ── LORE ── */
+  .lore {
+    margin-top: 42px;
+    display: flex; flex-direction: column; gap: 26px;
+    width: 100%;
+  }
+  .lore-p {
+    font-size: 19.5px;
+    line-height: 1.85;
+    color: #c8b08a;
+    position: relative;
+    padding-left: 30px;
+    animation: slide-in 1s ease both;
+  }
+  .lore-p::before {
+    content: '';
+    position: absolute; left: 0; top: 12px;
+    width: 8px; height: 8px;
+    background: var(--ember);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    box-shadow: 0 0 10px var(--ember);
+    animation: star-pulse 3s ease-in-out infinite;
+  }
+  @keyframes star-pulse {
+    0%,100%{ box-shadow: 0 0 8px var(--ember); }
+    50%    { box-shadow: 0 0 18px var(--bright-gold); }
+  }
+  .lore-p:nth-child(1){ animation-delay: 0.4s; }
+  .lore-p:nth-child(2){ animation-delay: 0.65s; }
+  .lore-p:nth-child(3){ animation-delay: 0.9s; }
+  .lore-p:nth-child(4){ animation-delay: 1.15s; }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(-18px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── COIN STRIP ── */
+  .coins {
+    margin-top: 48px;
+    display: flex; gap: 0; align-items: center;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    padding: 20px 0;
+  }
+  .coins::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, var(--deep), transparent 15%, transparent 85%, var(--deep));
+    z-index: 2;
+  }
+  .coin-track {
+    display: flex; gap: 16px;
+    animation: scroll-coins 20s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes scroll-coins {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .coin {
+    width: 34px; height: 34px; flex-shrink: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f5d060, #b8780a 50%, #7a4d06);
+    box-shadow: 0 0 8px rgba(212,147,10,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    animation: coin-spin 4s linear infinite;
+  }
+  .coin:nth-child(odd)  { animation-duration: 3.5s; animation-delay: 0.5s; }
+  .coin:nth-child(3n)   { width: 28px; height: 28px; font-size: 11px; }
+  @keyframes coin-spin {
+    0%   { box-shadow: 0 0 8px rgba(212,147,10,0.4); }
+    50%  { box-shadow: 0 0 18px rgba(240,180,41,0.7); }
+    100% { box-shadow: 0 0 8px rgba(212,147,10,0.4); }
+  }
+
+  /* ── FINAL BLOCK ── */
+  .final-line {
+    margin-top: 50px;
+    font-family: 'Cinzel', serif;
+    font-size: clamp(14px, 2.2vw, 20px);
+    color: var(--bright-gold);
+    text-align: center;
+    letter-spacing: 0.07em;
+    line-height: 1.65;
+    padding: 34px 44px;
+    background: linear-gradient(135deg, rgba(30,20,8,0.7), rgba(196,75,26,0.08));
+    border: 1px solid rgba(212,147,10,0.22);
+    position: relative;
+    animation: fadein 2s ease both 1.6s;
+  }
+  .final-line .sub {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.8em;
+    color: rgba(196,139,90,0.75);
+    margin-top: 10px;
+    letter-spacing: 0.03em;
+  }
+  /* corner ornaments */
+  .final-line::before {
+    content: '◈';
+    position: absolute; top: 10px; left: 14px;
+    color: var(--ember); opacity: 0.5; font-size: 14px;
+  }
+  .final-line::after {
+    content: '◈';
+    position: absolute; bottom: 10px; right: 14px;
+    color: var(--ember); opacity: 0.5; font-size: 14px;
+  }
+
+  /* ── BOTTOM DRAGON WINGS ── */
+  .wings-row {
+    margin-top: 58px;
+    opacity: 0.28;
+    display: flex; align-items: center; gap: 12px;
+    animation: fadein 3s ease both 2s;
+  }
+  .wing-svg { width: 90px; height: 50px; }
+  .wing-right { transform: scaleX(-1); }
+  .wings-gem { font-size: 20px; color: var(--bright-gold); }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .page { padding: 0 22px 80px; }
+    .scales-left, .scales-right { width: 70px; }
+    .hook { padding: 12px 40px; font-size: 11px; }
+    .final-line { padding: 24px 22px; }
+    .eye-svg { width: 150px; height: 82px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="noise"></div>
+
+<!-- Scale side panels -->
+<div class="scales-left">
+  <svg class="scales-svg" viewBox="0 0 160 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <radialGradient id="scaleG" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#c44b1a" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#1e1408" stop-opacity="0.1"/>
+      </radialGradient>
+    </defs>
+    <!-- repeating scale pattern -->
+    <g fill="url(#scaleG)" stroke="#d4930a" stroke-width="0.4" stroke-opacity="0.3">
+      <ellipse cx="20"  cy="30"  rx="18" ry="22"/>
+      <ellipse cx="56"  cy="30"  rx="18" ry="22"/>
+      <ellipse cx="92"  cy="30"  rx="18" ry="22"/>
+      <ellipse cx="128" cy="30"  rx="18" ry="22"/>
+      <ellipse cx="38"  cy="62"  rx="18" ry="22"/>
+      <ellipse cx="74"  cy="62"  rx="18" ry="22"/>
+      <ellipse cx="110" cy="62"  rx="18" ry="22"/>
+      <ellipse cx="146" cy="62"  rx="18" ry="22"/>
+      <ellipse cx="20"  cy="94"  rx="18" ry="22"/>
+      <ellipse cx="56"  cy="94"  rx="18" ry="22"/>
+      <ellipse cx="92"  cy="94"  rx="18" ry="22"/>
+      <ellipse cx="128" cy="94"  rx="18" ry="22"/>
+      <ellipse cx="38"  cy="126" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="126" rx="18" ry="22"/>
+      <ellipse cx="110" cy="126" rx="18" ry="22"/>
+      <ellipse cx="146" cy="126" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="158" rx="18" ry="22"/>
+      <ellipse cx="56"  cy="158" rx="18" ry="22"/>
+      <ellipse cx="92"  cy="158" rx="18" ry="22"/>
+      <ellipse cx="128" cy="158" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="190" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="190" rx="18" ry="22"/>
+      <ellipse cx="110" cy="190" rx="18" ry="22"/>
+      <ellipse cx="146" cy="190" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="222" rx="18" ry="22"/>
+      <ellipse cx="56"  cy="222" rx="18" ry="22"/>
+      <ellipse cx="92"  cy="222" rx="18" ry="22"/>
+      <ellipse cx="128" cy="222" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="254" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="254" rx="18" ry="22"/>
+      <ellipse cx="110" cy="254" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="286" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="286" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="318" rx="18" ry="22"/>
+      <ellipse cx="56"  cy="318" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="350" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="382" rx="18" ry="22"/>
+    </g>
+    <!-- fade to transparent on right -->
+    <rect width="160" height="800" fill="url(#fadeRight)"/>
+    <defs>
+      <linearGradient id="fadeRight" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="60%" stop-color="transparent"/>
+        <stop offset="100%" stop-color="#080500" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+  </svg>
+</div>
+
+<div class="scales-right">
+  <svg class="scales-svg" viewBox="0 0 160 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <radialGradient id="scaleG2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#c44b1a" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#1e1408" stop-opacity="0.1"/>
+      </radialGradient>
+      <linearGradient id="fadeRight2" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="60%" stop-color="transparent"/>
+        <stop offset="100%" stop-color="#080500" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+    <g fill="url(#scaleG2)" stroke="#d4930a" stroke-width="0.4" stroke-opacity="0.3">
+      <ellipse cx="20"  cy="30"  rx="18" ry="22"/>
+      <ellipse cx="56"  cy="30"  rx="18" ry="22"/>
+      <ellipse cx="92"  cy="30"  rx="18" ry="22"/>
+      <ellipse cx="128" cy="30"  rx="18" ry="22"/>
+      <ellipse cx="38"  cy="62"  rx="18" ry="22"/>
+      <ellipse cx="74"  cy="62"  rx="18" ry="22"/>
+      <ellipse cx="110" cy="62"  rx="18" ry="22"/>
+      <ellipse cx="146" cy="62"  rx="18" ry="22"/>
+      <ellipse cx="20"  cy="94"  rx="18" ry="22"/>
+      <ellipse cx="56"  cy="94"  rx="18" ry="22"/>
+      <ellipse cx="92"  cy="94"  rx="18" ry="22"/>
+      <ellipse cx="128" cy="94"  rx="18" ry="22"/>
+      <ellipse cx="38"  cy="126" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="126" rx="18" ry="22"/>
+      <ellipse cx="110" cy="126" rx="18" ry="22"/>
+      <ellipse cx="146" cy="126" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="158" rx="18" ry="22"/>
+      <ellipse cx="56"  cy="158" rx="18" ry="22"/>
+      <ellipse cx="92"  cy="158" rx="18" ry="22"/>
+      <ellipse cx="128" cy="158" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="190" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="190" rx="18" ry="22"/>
+      <ellipse cx="110" cy="190" rx="18" ry="22"/>
+      <ellipse cx="146" cy="190" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="222" rx="18" ry="22"/>
+      <ellipse cx="56"  cy="222" rx="18" ry="22"/>
+      <ellipse cx="92"  cy="222" rx="18" ry="22"/>
+      <ellipse cx="128" cy="222" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="254" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="254" rx="18" ry="22"/>
+      <ellipse cx="110" cy="254" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="286" rx="18" ry="22"/>
+      <ellipse cx="74"  cy="286" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="318" rx="18" ry="22"/>
+      <ellipse cx="56"  cy="318" rx="18" ry="22"/>
+      <ellipse cx="38"  cy="350" rx="18" ry="22"/>
+      <ellipse cx="20"  cy="382" rx="18" ry="22"/>
+    </g>
+    <rect width="160" height="800" fill="url(#fadeRight2)"/>
+  </svg>
+</div>
+
+<div class="page">
+
+  <!-- Dragon Eye -->
+  <div class="eye-wrap">
+    <svg class="eye-svg" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="irisG" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#ff6b2b"/>
+          <stop offset="35%"  stop-color="#c44b1a"/>
+          <stop offset="70%"  stop-color="#8b2800"/>
+          <stop offset="100%" stop-color="#3a0d00"/>
+        </radialGradient>
+        <radialGradient id="glowG" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#f0b429" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+        <filter id="eyeGlow">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <clipPath id="eyeClip">
+          <path d="M10 55 Q100 0 190 55 Q100 110 10 55 Z"/>
+        </clipPath>
+      </defs>
+      <!-- outer glow -->
+      <ellipse cx="100" cy="55" rx="95" ry="50" fill="url(#glowG)" filter="url(#eyeGlow)"/>
+      <!-- eyeball whites / sclera - dark for dragon -->
+      <path d="M10 55 Q100 5 190 55 Q100 105 10 55 Z" fill="#1a0800"/>
+      <!-- iris -->
+      <ellipse cx="100" cy="55" rx="32" ry="40" fill="url(#irisG)" clip-path="url(#eyeClip)" filter="url(#eyeGlow)"/>
+      <!-- pupil - vertical slit -->
+      <ellipse cx="100" cy="55" rx="7" ry="32" fill="#0d0400" clip-path="url(#eyeClip)"/>
+      <!-- highlight -->
+      <ellipse cx="110" cy="42" rx="5" ry="3" fill="rgba(255,200,100,0.35)" clip-path="url(#eyeClip)"/>
+      <!-- eyelid lines -->
+      <path d="M10 55 Q100 5 190 55" stroke="#8b2800" stroke-width="1.5" fill="none" opacity="0.6"/>
+      <path d="M10 55 Q100 105 190 55" stroke="#5a1500" stroke-width="1.5" fill="none" opacity="0.4"/>
+      <!-- scales around eye -->
+      <path d="M0 55 Q5 40 20 35 Q5 30 0 20" stroke="#c44b1a" stroke-width="0.8" fill="none" opacity="0.4"/>
+      <path d="M200 55 Q195 40 180 35 Q195 30 200 20" stroke="#c44b1a" stroke-width="0.8" fill="none" opacity="0.4"/>
+    </svg>
+  </div>
+
+  <!-- Tag -->
+  <div class="campaign-tag">🐉 Кампания I</div>
+
+  <!-- Title -->
+  <div class="title-block">
+    <span class="title-sub">D&amp;D · Forgotten Realms</span>
+    <h1>Клад<em>Королевы Драконов</em></h1>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider">
+    <div class="div-line"></div>
+    <div class="div-icon">🔥</div>
+    <div class="div-line"></div>
+  </div>
+
+  <!-- Hook -->
+  <div class="hook">Мирная жизнь разлетается в пепел</div>
+
+  <!-- Lore -->
+  <div class="lore">
+    <p class="lore-p">
+      Культ Дракона снова активизировался. Их агенты просочились в города и сёла, их алтари запылали в потаённых местах, а где-то в горах зреет нечто невообразимо огромное.
+    </p>
+    <p class="lore-p">
+      Вы оказались в нужном месте в нужное время. Или не очень — тут как посмотреть.
+    </p>
+    <p class="lore-p">
+      Перед вами запутанный след из пепла, <strong style="color:var(--bright-gold)">золота</strong> и чешуи. Он ведёт туда, куда нормальные люди не ходят.
+    </p>
+    <p class="lore-p" style="color:var(--bone-ash); font-style:italic;">
+      Но вы же не совсем нормальные, правда?
+    </p>
+  </div>
+
+  <!-- Scrolling coins -->
+  <div class="coins">
+    <div class="coin-track" id="coinTrack">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- Final block -->
+  <div class="final-line">
+    Золото не хранят — его берут.<br>
+    <span class="sub">У тех, кто достаточно безрассуден, чтобы попытаться.</span>
+  </div>
+
+  <!-- Wings -->
+  <div class="wings-row">
+    <svg class="wing-svg wing-left" viewBox="0 0 90 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M90 25 C70 5 40 0 10 10 C0 13 0 20 5 25 C15 35 40 40 90 25 Z" fill="#c44b1a" opacity="0.7"/>
+      <path d="M90 25 C75 35 55 45 20 42 C10 41 5 35 10 30" stroke="#d4930a" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <line x1="90" y1="25" x2="30" y2="8"  stroke="#8b2800" stroke-width="0.6" opacity="0.4"/>
+      <line x1="90" y1="25" x2="45" y2="4"  stroke="#8b2800" stroke-width="0.6" opacity="0.4"/>
+      <line x1="90" y1="25" x2="60" y2="3"  stroke="#8b2800" stroke-width="0.6" opacity="0.4"/>
+    </svg>
+    <div class="wings-gem">◆</div>
+    <svg class="wing-svg wing-right" viewBox="0 0 90 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M90 25 C70 5 40 0 10 10 C0 13 0 20 5 25 C15 35 40 40 90 25 Z" fill="#c44b1a" opacity="0.7"/>
+      <path d="M90 25 C75 35 55 45 20 42 C10 41 5 35 10 30" stroke="#d4930a" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <line x1="90" y1="25" x2="30" y2="8"  stroke="#8b2800" stroke-width="0.6" opacity="0.4"/>
+      <line x1="90" y1="25" x2="45" y2="4"  stroke="#8b2800" stroke-width="0.6" opacity="0.4"/>
+      <line x1="90" y1="25" x2="60" y2="3"  stroke="#8b2800" stroke-width="0.6" opacity="0.4"/>
+    </svg>
+  </div>
+
+</div>
+
+<script>
+/* ── COIN TRACK ── */
+const symbols = ['🪙','💰','⚔️','🗡️','🪙','💎','🪙','⚔️'];
+const track = document.getElementById('coinTrack');
+// duplicate for seamless loop
+const allSyms = [...symbols, ...symbols, ...symbols, ...symbols];
+allSyms.forEach(s => {
+  const d = document.createElement('div');
+  d.className = 'coin';
+  d.textContent = s;
+  track.appendChild(d);
+});
+// Measure and duplicate for seamless
+setTimeout(() => {
+  const w = track.scrollWidth / 2;
+  track.style.setProperty('--track-w', w + 'px');
+}, 50);
+
+/* ── BG CANVAS ── */
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+/* Embers & smoke */
+const EMBER_COUNT = 70;
+const embers = Array.from({length: EMBER_COUNT}, () => ({
+  x:     Math.random() * window.innerWidth,
+  y:     Math.random() * window.innerHeight,
+  r:     Math.random() * 2 + 0.4,
+  vx:    (Math.random() - 0.5) * 0.5,
+  vy:    -(Math.random() * 0.8 + 0.2),
+  life:  Math.random(),
+  speed: Math.random() * 0.003 + 0.001,
+  type:  Math.random() < 0.6 ? 'ember' : 'smoke',
+}));
+
+function drawBg(t) {
+  // Volcanic radial bg
+  const g = ctx.createRadialGradient(
+    canvas.width * 0.5, canvas.height * 0.6, 0,
+    canvas.width * 0.5, canvas.height * 0.5, canvas.height
+  );
+  g.addColorStop(0,    '#1a0900');
+  g.addColorStop(0.3,  '#0e0500');
+  g.addColorStop(0.7,  '#060300');
+  g.addColorStop(1,    '#020100');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Bottom lava glow
+  const lava = ctx.createLinearGradient(0, canvas.height * 0.75, 0, canvas.height);
+  lava.addColorStop(0, 'rgba(0,0,0,0)');
+  lava.addColorStop(0.5, 'rgba(140,40,0,0.12)');
+  lava.addColorStop(1,   'rgba(196,75,26,0.18)');
+  ctx.fillStyle = lava;
+  ctx.fillRect(0, canvas.height * 0.75, canvas.width, canvas.height * 0.25);
+
+  // Vignette
+  const vig = ctx.createRadialGradient(
+    canvas.width/2, canvas.height/2, canvas.height * 0.1,
+    canvas.width/2, canvas.height/2, canvas.height
+  );
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.82)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Embers & smoke particles
+  embers.forEach(e => {
+    e.life += e.speed;
+    if (e.life > 1) { e.life = 0; e.x = Math.random() * canvas.width; e.y = canvas.height + 10; }
+    const alpha = Math.sin(e.life * Math.PI) * (e.type === 'ember' ? 0.75 : 0.15);
+    e.x += e.vx + Math.sin(t * 0.0007 + e.y * 0.01) * 0.3;
+    e.y += e.vy;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    if (e.type === 'ember') {
+      const flicker = 0.6 + 0.4 * Math.sin(t * 0.008 + e.x);
+      ctx.fillStyle = `rgba(${Math.floor(220 + 35*flicker)},${Math.floor(80 + 40*flicker)},20,${alpha})`;
+    } else {
+      ctx.fillStyle = `rgba(60,40,20,${alpha * 0.4})`;
+    }
+    ctx.fill();
+  });
+}
+
+function loop(t) {
+  drawBg(t);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
